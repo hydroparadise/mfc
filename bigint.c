@@ -21,7 +21,10 @@ BigInt* addBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* subtractBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* maxSizeBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* minSizeBigInt(BigInt *bigInt1, BigInt *bigInt2);
-
+BigInt* gtBigInt(BigInt *bigInt1, BigInt *bigInt2);
+BigInt* ltBigInt(BigInt *bigInt1, BigInt *bigInt2);
+BigInt* maxValueBigInt(BigInt *bigInt1, BigInt *bigInt2);
+BigInt* minValueBigInt(BigInt *bigInt1, BigInt *bigInt2);
 
 /*
 Inits a BigInt with a size parameter where size is the number of bytes
@@ -47,7 +50,7 @@ BigInt* createBigInt(int size) {
 
 
 /*
-Method initializes a bigint and converts an int to byte array.  Wth most systems, size will be 4
+Method initializes a bigint and converts an int to byte array.  With most systems, size will be 4
 */
 BigInt* createBigInt_int(int value) {
 	BigInt *bigInt;	
@@ -67,7 +70,7 @@ BigInt* createBigInt_int(int value) {
 
 
 /*
-Returns the larger magnitude of two BinInts
+Returns pointer to the larger magnitude of two BinInts
 */
 BigInt* maxSizeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 
@@ -77,6 +80,20 @@ BigInt* maxSizeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 Returns the small magnitude of two BinInts
 */
 BigInt* minSizeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+
+}
+
+/*
+Returns pointer to the larger magnitude of two BinInts
+*/
+BigInt* maxValueBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+
+}
+
+/*
+Returns the small magnitude of two BinInts
+*/
+BigInt* minValueBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 
 }
 
