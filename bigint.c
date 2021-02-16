@@ -2,8 +2,15 @@
 A big-endian implementation of an arbitrary precision integer
 */
 
-#ifndef BIGINT
-#define BIGINT
+#ifndef MFC_BIGINT
+#define MFC_BIGINT
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <errno.h>
+#include <error.h>
+
 
 /*
 Basic Strategies
@@ -17,84 +24,162 @@ typedef struct BigInt {
 	bool isNegative;
 } BigInt;
 
+
+//TODO: create  header for prototypes
+BigInt* createBigInt(int size);
+BigInt* createBigInt_int(int value);
+BigInt* copyBigInt(BigInt *bigInt);
 BigInt* addBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* subtractBigInt(BigInt *bigInt1, BigInt *bigInt2);
+int compareSizeBigInt(BigInt *bigInt1, BigInt *bigInt2);
+int compareValueBigInt(BigInt *bigInt1, BigInt *bigInt2);
+bool gtBigInt(BigInt *bigInt1, BigInt *bigInt2);
+bool ltBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* maxSizeBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* minSizeBigInt(BigInt *bigInt1, BigInt *bigInt2);
-BigInt* gtBigInt(BigInt *bigInt1, BigInt *bigInt2);
-BigInt* ltBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* maxValueBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* minValueBigInt(BigInt *bigInt1, BigInt *bigInt2);
+
 
 /*
 Inits a BigInt with a size parameter where size is the number of bytes
 */
 BigInt* createBigInt(int size) {
-	BigInt *bigInt;
-	bigInt = NULL;	
-
+	BigInt *output;
+	output = NULL;	
 	if(size > 0) {
-		bigInt = malloc(sizeof(BigInt));
-		bigInt->isNegative = false;
-		bigInt->size = size;
-		bigInt->bytes = malloc(size * sizeof(char));
+		output = malloc(sizeof(BigInt));
+		if(!output)
+			error(EXIT_FAILURE, errno, "Could not allocate.");
+		output->isNegative = false;
+		output->size = size;
+		output->bytes = malloc(size * sizeof(char));
 
 		//initialize as 0
-		for(int i = 0; i < bigInt->size ; i++) {
-			bigInt->bytes[i] = 0;
+		for(int i = 0; i < output->size ; i++) {
+			output->bytes[i] = 0;
 		}
 	}
 
-	return bigInt;
+	return output;
 }
 
 
 /*
-Method initializes a bigint and converts an int to byte array.  With most systems, size will be 4
+Method creates and initializes a BigInt and converts an int to byte array.  With most systems, size will be 4
 */
 BigInt* createBigInt_int(int value) {
-	BigInt *bigInt;	
-	bigInt = malloc(sizeof(BigInt));
-	if(value >= 0) bigInt->isNegative = false;
-	else bigInt->isNegative = true;
+	BigInt *output;	
+	output = malloc(sizeof(BigInt));
+	if(!output)
+		error(EXIT_FAILURE, errno, "Could not allocate.");
 
-	bigInt->size = sizeof(value);
-	bigInt->bytes = malloc(bigInt->size * sizeof(char));
+	if(value >= 0) output->isNegative = false;
+	else output->isNegative = true;
+
+	output->size = sizeof(value);
+	output->bytes = malloc(output->size * sizeof(char));
 
 	//converts int into byte array
-	for(int i = 0; i < bigInt->size ; i++) {
-		bigInt->bytes[i] = (char)(value >> i * 8 & 0xFF);
+	for(int i = 0; i < output->size ; i++) {
+		output->bytes[i] = (char)(value >> i * 8 & 0xFF);
 	}
-	return bigInt;
+	return output;
+}
+
+
+/*
+Creates a copy of a BigInt and returns new instance
+*/
+BigInt* copyBigInt(BigInt *bigInt) {
+	BigInt *output;
+	output = NULL;
+	if(!bigInt && bigInt->size >=0) {
+		output = createBigInt(bigInt->size);
+		for(int i = 0; i < bigInt->size ; i++) {
+			output->bytes[i] = bigInt->bytes[i];
+		}
+	}
+	
+	return output;
 }
 
 
 /*
 Returns pointer to the larger magnitude of two BinInts
+If magnitudes are equal, will return first arg
 */
-BigInt* maxSizeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+BigInt* maxMagnitudeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+	BigInt *output;
+	output = NULL;
+	if(bigInt1 != NULL && bigInt2 != NULL) {
+		char val1, val2;
+		for(int i = 0 ; i < MAX(bigInt1->size, bigInt2->size); i++) {
+			//cant compare directly between 2 BigInts because
+			//of possibility of differing sizes
+			val1 = 0; val2 = 0;
+			if(i < bigInt1->size) val1 = bigInt1->bytes[i];
+			if(i < bigInt2->size) val2 = bigInt2->bytes[i];
+
+			if(val1 >= val2) output = bigInt1;
+			else output = bigInt2;
+		}
+		return output;
+	}
+	else return NULL;
+}
+
+
+/*
+Returns the smaller magnitude of two BinInts
+If sizes are equal, will return first arg
+*/
+BigInt* minMagnitudeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+	
+	if(!bigInt1 && !bigInt2) {
+		if(bigInt1 != maxMagnitudeBigInt(bigInt1, bigInt2)) return bigInt2;
+		else return bigInt1;
+	}
+	else return NULL;
 
 }
 
-/*
-Returns the small magnitude of two BinInts
-*/
-BigInt* minSizeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
-
-}
 
 /*
-Returns pointer to the larger magnitude of two BinInts
+Returns pointer to the larger value of two BinInts
 */
 BigInt* maxValueBigInt(BigInt *bigInt1, BigInt *bigInt2) {
-
+	if(!bigInt1 && !bigInt2) {
+		if(bigInt1->isNegative == false && bigInt2->isNegative == true) 
+			return bigInt1;
+		else if(bigInt1->isNegative == true && bigInt2->isNegative == false)
+			return bigInt2;
+		else if(bigInt1->isNegative == false && bigInt2->isNegative == false)
+			return maxMagnitudeBigInt(bigInt1,bigInt2);
+		else if(bigInt1->isNegative == true && bigInt2->isNegative == true)
+			return minMagnitudeBigInt(bigInt1,bigInt2);
+		
+	}
+	else return NULL;
 }
+
 
 /*
 Returns the small magnitude of two BinInts
 */
 BigInt* minValueBigInt(BigInt *bigInt1, BigInt *bigInt2) {
-
+	if(!bigInt1 && !bigInt2) {
+		if(bigInt1->isNegative == true && bigInt2->isNegative == false) 
+			return bigInt1;
+		else if(bigInt1->isNegative == false && bigInt2->isNegative == true)
+			return bigInt2;
+		else if(bigInt1->isNegative == true && bigInt2->isNegative == true)
+			return maxMagnitudeBigInt(bigInt1,bigInt2);
+		else if(bigInt1->isNegative == false && bigInt2->isNegative == false)
+			return minMagnitudeBigInt(bigInt1,bigInt2);
+		
+	}
+	else return NULL;
 }
 
 
@@ -135,13 +220,18 @@ BigInt* subtractBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 
 
 /*
-Clean up big int;
+Clean up BigInt
 */
 void freeBigInt(BigInt *bigInt) {
+	if(bigInt->bytes != NULL) {
+		free(bigInt->bytes);
+		bigInt->bytes = NULL;
+	}
 
-	free(bigInt->bytes);
-	bigInt = NULL;
-	//free(bigInt);	
+	if(bigInt != NULL) {
+		free(bigInt);
+		bigInt = NULL;
+	}
 }
 
 #endif
