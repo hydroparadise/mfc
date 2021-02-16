@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
 //development testing for BigInt;
 void static bigIntTest01() {
   	BigInt *testBi;
-	initBigIntFromInt(testBi,0x7AB4D933);
+	testBi = createBigInt_int(0x7AB4D933);
 	
 	printf("%d\n", 0x7AB4D933);
 	printf("%d\n", testBi->size);

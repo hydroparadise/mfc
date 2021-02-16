@@ -26,23 +26,31 @@ BigInt* minSizeBigInt(BigInt *bigInt1, BigInt *bigInt2);
 /*
 Inits a BigInt with a size parameter where size is the number of bytes
 */
-void initBigInt(BigInt *bigInt,int value) {
-	bigInt = malloc(sizeof(BigInt));
-	bigInt->isNegative = false;
-	bigInt->size = value;
-	bigInt->bytes = malloc(bigInt->size * sizeof(char));
+BigInt* createBigInt(int size) {
+	BigInt *bigInt;
+	bigInt = NULL;	
 
-	//initialize as 0
-	for(int i = 0; i < bigInt->size ; i++) {
-		bigInt->bytes[i] = 0;
+	if(size > 0) {
+		bigInt = malloc(sizeof(BigInt));
+		bigInt->isNegative = false;
+		bigInt->size = size;
+		bigInt->bytes = malloc(size * sizeof(char));
+
+		//initialize as 0
+		for(int i = 0; i < bigInt->size ; i++) {
+			bigInt->bytes[i] = 0;
+		}
 	}
+
+	return bigInt;
 }
 
 
 /*
 Method initializes a bigint and converts an int to byte array.  Wth most systems, size will be 4
 */
-void initBigIntFromInt(BigInt *bigInt,int value) {
+BigInt* createBigInt_int(int value) {
+	BigInt *bigInt;	
 	bigInt = malloc(sizeof(BigInt));
 	if(value >= 0) bigInt->isNegative = false;
 	else bigInt->isNegative = true;
@@ -54,6 +62,7 @@ void initBigIntFromInt(BigInt *bigInt,int value) {
 	for(int i = 0; i < bigInt->size ; i++) {
 		bigInt->bytes[i] = (char)(value >> i * 8 & 0xFF);
 	}
+	return bigInt;
 }
 
 
@@ -87,8 +96,7 @@ BigInt* addBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 		else inc = 0;
 
 		//setup output BigInt
-		output = malloc(sizeof(BigInt));
-		initBigInt(output, MAX(bigInt1->size, bigInt2->size) + inc);
+		output = createBigInt(MAX(bigInt1->size, bigInt2->size) + inc);
 		
 		int sum, carry;
 		for(int i = 0; i < MAX(bigInt1->size, bigInt2->size) ; i++) {
