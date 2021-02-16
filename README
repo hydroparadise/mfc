@@ -1,0 +1,8 @@
+MFC - Math Fun with C
+A C program intend to implement some maths so that it
+may be inspeceted as assembly.  Will be playing with
+BitInt implementation, prime finding, and maybe even
+do so
+
+
+gcc -pthread main.c
