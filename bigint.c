@@ -19,11 +19,15 @@ typedef struct BigInt {
 
 BigInt* addBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* subtractBigInt(BigInt *bigInt1, BigInt *bigInt2);
+BigInt* maxSizeBigInt(BigInt *bigInt1, BigInt *bigInt2);
+BigInt* minSizeBigInt(BigInt *bigInt1, BigInt *bigInt2);
+
 
 /*
-A
+Inits a BigInt with a size parameter where size is the number of bytes
 */
 void initBigInt(BigInt *bigInt,int value) {
+	bigInt = malloc(sizeof(BigInt));
 	bigInt->isNegative = false;
 	bigInt->size = value;
 	bigInt->bytes = malloc(bigInt->size * sizeof(char));
@@ -36,9 +40,10 @@ void initBigInt(BigInt *bigInt,int value) {
 
 
 /*
-Method that converts int to byte array.  Wth most systems, size will be 4
+Method initializes a bigint and converts an int to byte array.  Wth most systems, size will be 4
 */
 void initBigIntFromInt(BigInt *bigInt,int value) {
+	bigInt = malloc(sizeof(BigInt));
 	if(value >= 0) bigInt->isNegative = false;
 	else bigInt->isNegative = true;
 
@@ -52,6 +57,19 @@ void initBigIntFromInt(BigInt *bigInt,int value) {
 }
 
 
+/*
+Returns the larger magnitude of two BinInts
+*/
+BigInt* maxSizeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+
+}
+
+/*
+Returns the small magnitude of two BinInts
+*/
+BigInt* minSizeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+
+}
 
 
 /*
@@ -61,23 +79,29 @@ BigInt* addBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 	BigInt *output;
 	if(bigInt1->isNegative == bigInt2->isNegative) {
 
-		//early check for addition overflow
+		//early check for addition overflow ty bytes[]
 		char inc;	//used as a +1 for overflow condition
-		if(bigInt1->size == bigInt2->size  &&
-		   bigInt1->bytes[bigInt1->size] + bigInt2->bytes[bigInt2->size] > 0xFF) 
-			inc = 1;
+		if(bigInt1->bytes[bigInt1->size] > 0 || 
+                   bigInt2->bytes[bigInt2->size] > 0) inc = 1;
+			
 		else inc = 0;
 
-		//setup ou
+		//setup output BigInt
 		output = malloc(sizeof(BigInt));
 		initBigInt(output, MAX(bigInt1->size, bigInt2->size) + inc);
 		
+		int sum, carry;
+		for(int i = 0; i < MAX(bigInt1->size, bigInt2->size) ; i++) {
+			sum = 0;
+			if(i <= bigInt1->size) sum = sum + bigInt1->bytes[i];
+			if(i <= bigInt2->size) sum = sum + bigInt2->bytes[i];
+			
+		}
 		
 	}
 	//else subtractBigInt()
 
 	return output;
-
 }
 
 BigInt* subtractBigInt(BigInt *bigInt1, BigInt *bigInt2) {
