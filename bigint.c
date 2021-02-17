@@ -19,9 +19,10 @@ Basic Strategies
 
 
 typedef struct BigInt {
-	int size;
+	const int size;
+	const bool isNegative;
 	char *bytes;
-	bool isNegative;
+
 } BigInt;
 
 
@@ -51,9 +52,15 @@ BigInt* createBigInt(int size) {
 		output = malloc(sizeof(BigInt));
 		if(!output)
 			error(EXIT_FAILURE, errno, "Could not allocate.");
-		output->isNegative = false;
-		output->size = size;
+		
+		//this type of assignment is needed to initialize const member
+		//of an malloc'd structure
+		//cast   dereference
+		*(bool *)&output->isNegative = false;
+		*(int *)&output->size = size;
 		output->bytes = malloc(size * sizeof(char));
+		if(output->bytes)
+			error(EXIT_FAILURE, errno, "Could not allocate.");
 
 		//initialize as 0
 		for(int i = 0; i < output->size ; i++) {
@@ -74,10 +81,10 @@ BigInt* createBigInt_int(int value) {
 	if(!output)
 		error(EXIT_FAILURE, errno, "Could not allocate.");
 
-	if(value >= 0) output->isNegative = false;
-	else output->isNegative = true;
+	if(value >= 0) *(bool *)&output->isNegative = false;
+	else *(bool *)&output->isNegative = true;
 
-	output->size = sizeof(value);
+	*(int *)&output->size = sizeof(value);
 	output->bytes = malloc(output->size * sizeof(char));
 
 	//converts int into byte array
@@ -136,12 +143,11 @@ If sizes are equal, will return first arg
 */
 BigInt* minMagnitudeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 	
-	if(!bigInt1 && !bigInt2) {
-		if(bigInt1 != maxMagnitudeBigInt(bigInt1, bigInt2)) return bigInt2;
+	if(bigInt1 != NULL && bigInt2 != NULL) {
+		if(bigInt1 == maxMagnitudeBigInt(bigInt1, bigInt2)) return bigInt2;
 		else return bigInt1;
 	}
 	else return NULL;
-
 }
 
 
@@ -149,7 +155,7 @@ BigInt* minMagnitudeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 Returns pointer to the larger value of two BinInts
 */
 BigInt* maxValueBigInt(BigInt *bigInt1, BigInt *bigInt2) {
-	if(!bigInt1 && !bigInt2) {
+	if(bigInt1 != NULL && bigInt2 != NULL) {
 		if(bigInt1->isNegative == false && bigInt2->isNegative == true) 
 			return bigInt1;
 		else if(bigInt1->isNegative == true && bigInt2->isNegative == false)
@@ -168,7 +174,7 @@ BigInt* maxValueBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 Returns the small magnitude of two BinInts
 */
 BigInt* minValueBigInt(BigInt *bigInt1, BigInt *bigInt2) {
-	if(!bigInt1 && !bigInt2) {
+	if(bigInt1 != NULL && bigInt2 != NULL) {
 		if(bigInt1->isNegative == true && bigInt2->isNegative == false) 
 			return bigInt1;
 		else if(bigInt1->isNegative == false && bigInt2->isNegative == true)

@@ -27,28 +27,30 @@ int main(int argc, char **argv) {
 
 //development testing for BigInt;
 void static bigIntTest01() {
-	printf("a\n");
+	int t1, t2;	
+	t1 = 0x7AB4D933;
+	t2 = 0x7BB4D933;
+
   	BigInt *testBi,*testBi1,*testBi2;
-	testBi1 = createBigInt_int(0x7AB4D933);
-	testBi2 = createBigInt_int(0x7BB4D933);
+
+	testBi1 = createBigInt_int(t1);
+	testBi2 = createBigInt_int(t2);
+
+	printf("testBi1:  %X\n", t1);
+	printf("testBi2:  %X\n", t2);
 	
+	printf("maxMagnitudeBigInt check:  ");
 	testBi = maxMagnitudeBigInt(testBi1,testBi2);
-	//testBi = testBi2;
+	for(int i = testBi->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi->bytes[i] & 0xFF);
+	} printf("\n");
 
-	//printf("%d\n", 0x7AB4D933);
-	printf("%d\n", testBi->size);
-
-	//print each byte as hex pair 
-	for(int i = 0; i < testBi->size ; i++) {
-		//      format                     mask
-		printf("%02X\n", testBi->bytes[i] & 0xFF);
-	}
+	printf("minMagnitudeBigInt check:  ");
+	testBi = minMagnitudeBigInt(testBi1,testBi2);
+	for(int i = testBi->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi->bytes[i] & 0xFF);
+	} printf("\n");
 	
-	//print each nibble as decimal
-	for(int i = 0; i < testBi->size ; i++) {
-		//printf("%d\n", testBi->bytes[i] & 0xF);
-		//printf("%d\n", testBi->bytes[i] >> 4 & 0xF);
-	}
 
 	freeBigInt(testBi1);
 	freeBigInt(testBi2);
