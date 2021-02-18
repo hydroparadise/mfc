@@ -125,8 +125,22 @@ BigInt* maxMagnitudeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 			//cant compare directly between 2 BigInts because
 			//of possibility of differing sizes
 			val1 = 0; val2 = 0;
-			if(i < bigInt1->size) val1 = bigInt1->bytes[i];
-			if(i < bigInt2->size) val2 = bigInt2->bytes[i];
+
+			//make sure we are within array range to grab value
+			if(i < bigInt1->size) {
+				//if positive, get value as-is
+				if(bigInt1->isNegative == false) val1 = bigInt1->bytes[i];
+				//if negative, get 2's compelement
+				else val1 = ~bigInt1->bytes[i] + 1;
+			}
+
+			//make sure we are within array range to grab value
+			if(i < bigInt2->size) {
+				//if positive, get value as-is
+				if(bigInt2->isNegative == false) val2 = bigInt2->bytes[i];
+				//if negative, get 2's compelement
+				else val2 = ~bigInt2->bytes[i] + 1;
+			}
 
 			if(val1 >= val2) output = bigInt1;
 			else output = bigInt2;
