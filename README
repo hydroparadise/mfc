@@ -1,8 +1,11 @@
 MFC - Math Fun with C
-A C program intend to implement some maths so that it
-may be inspeceted as assembly.  Will be playing with
+A C program intended to implement some maths so that 
+it may be inspeceted as assembly.  Will be playing with
 BitInt implementation, prime finding, and maybe even
-do some concurrency opperations
+do some concurrency opperations to experiment with
+concurency.  This is to support at least one of two
+directions I want take; to develop on the Sega Genisis
+to understand it's programming paradigm and CUDA
+programming to get into developing neural nets from
+scratch.
 
-
-gcc -pthread main.c

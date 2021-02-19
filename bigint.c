@@ -1,5 +1,17 @@
 /*
 A big-endian implementation of an arbitrary precision integer
+Addition: Augend + Addend = Sum
+Subtraction: Minuend - Subtrahend = Difference
+Multiplication: Multiplicand x Multiplier = Product
+Division: Dividend / Divisor = Quotient
+Modulation: Dividend % Divisor = Remainder
+Exponentiation: Base ^ Exponent = Power
+Nth Root:  Degree V Radicand = Root
+Logarithm: log base (antilogarithm) = logarithm
+
+
+
+
 */
 
 #ifndef MFC_BIGINT
@@ -53,7 +65,7 @@ BigInt* createBigInt(int size) {
 		if(!output)
 			error(EXIT_FAILURE, errno, "Could not allocate.");
 		
-		//this type of assignment is needed to initialize const member
+		//this type of assignment is needed to initialize const struct member
 		//of an malloc'd structure
 		//cast   dereference
 		*(bool *)&output->isNegative = false;
@@ -80,12 +92,15 @@ BigInt* createBigInt_int(int value) {
 	output = malloc(sizeof(BigInt));
 	if(!output)
 		error(EXIT_FAILURE, errno, "Could not allocate.");
-
-	if(value >= 0) *(bool *)&output->isNegative = false;
+	
+	//this type of assignment is needed to initialize a const struct member
+	if(value >= 0) *(bool *) &output->isNegative = false;
 	else *(bool *)&output->isNegative = true;
-
+	
 	*(int *)&output->size = sizeof(value);
 	output->bytes = malloc(output->size * sizeof(char));
+	if(!output->bytes)
+		error(EXIT_FAILURE, errno, "Could not allocate.");
 
 	//converts int into byte array
 	for(int i = 0; i < output->size ; i++) {
@@ -125,7 +140,8 @@ BigInt* maxMagnitudeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 			//cant compare directly between 2 BigInts because
 			//of possibility of differing sizes
 			val1 = 0; val2 = 0;
-
+			
+			//arg 1
 			//make sure we are within array range to grab value
 			if(i < bigInt1->size) {
 				//if positive, get value as-is
@@ -134,6 +150,7 @@ BigInt* maxMagnitudeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 				else val1 = ~bigInt1->bytes[i] + 1;
 			}
 
+			//arg 2
 			//make sure we are within array range to grab value
 			if(i < bigInt2->size) {
 				//if positive, get value as-is
