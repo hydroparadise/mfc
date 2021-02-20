@@ -30,11 +30,16 @@ Basic Strategies
 */
 
 
-typedef struct BigInt {
-	const int size;
-	const bool isNegative;
-	char *bytes;
+//typedef struct BigInt {
+//	const int size;
+//	const bool isNegative;
+//	char *bytes;
+//} BigInt;
 
+typedef struct BigInt {
+	int size;
+	bool isNegative;
+	char *bytes;
 } BigInt;
 
 
@@ -63,16 +68,19 @@ BigInt* createBigInt(int size) {
 	if(size > 0) {
 		output = malloc(sizeof(BigInt));
 		if(!output)
-			error(EXIT_FAILURE, errno, "Could not allocate.");
+			error(EXIT_FAILURE, errno, "Could not allocate struct.");
 		
 		//this type of assignment is needed to initialize const struct member
 		//of an malloc'd structure
 		//cast   dereference
-		*(bool *)&output->isNegative = false;
-		*(int *)&output->size = size;
+		//*(bool *)&output->isNegative = false;
+		//*(int *)&output->size = size;
+		output->isNegative = false;
+		output->size = size;
+
 		output->bytes = malloc(size * sizeof(char));
-		if(output->bytes)
-			error(EXIT_FAILURE, errno, "Could not allocate.");
+		if(!output->bytes)
+			error(EXIT_FAILURE, errno, "Could not allocate byte array.");
 
 		//initialize as 0
 		for(int i = 0; i < output->size ; i++) {
@@ -94,9 +102,12 @@ BigInt* createBigInt_int(int value) {
 		error(EXIT_FAILURE, errno, "Could not allocate.");
 	
 	//this type of assignment is needed to initialize a const struct member
-	if(value >= 0) *(bool *) &output->isNegative = false;
-	else *(bool *)&output->isNegative = true;
-	
+	//if(value >= 0) *(bool *) &output->isNegative = false;
+	//else *(bool *)&output->isNegative = true;
+	if(value >= 0) output->isNegative = false;
+	else output->isNegative = true;	
+
+
 	*(int *)&output->size = sizeof(value);
 	output->bytes = malloc(output->size * sizeof(char));
 	if(!output->bytes)
@@ -162,9 +173,8 @@ BigInt* maxMagnitudeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 			if(val1 >= val2) output = bigInt1;
 			else output = bigInt2;
 		}
-		return output;
 	}
-	else return NULL;
+	return output;
 }
 
 
@@ -225,28 +235,39 @@ Adds two BigInts, outputs new BigInt
 */
 BigInt* addBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 	BigInt *output;
-	if(bigInt1->isNegative == bigInt2->isNegative) {
+	output = NULL;
 
-		//early check for addition overflow ty bytes[]
-		char inc;	//used as a +1 for overflow condition
-		if(bigInt1->bytes[bigInt1->size] > 0 || 
-                   bigInt2->bytes[bigInt2->size] > 0) inc = 1;
-			
-		else inc = 0;
+	if(bigInt1 != NULL && bigInt2 != NULL) {
+		//like signs can add up straight forward
+		unsigned char val1, val2, carry;
+		unsigned short sum;
 
-		//setup output BigInt
-		output = createBigInt(MAX(bigInt1->size, bigInt2->size) + inc);
-		
-		int sum, carry;
-		for(int i = 0; i < MAX(bigInt1->size, bigInt2->size) ; i++) {
-			sum = 0;
-			if(i <= bigInt1->size) sum = sum + bigInt1->bytes[i];
-			if(i <= bigInt2->size) sum = sum + bigInt2->bytes[i];
+		output = createBigInt(MAX(bigInt1->size, bigInt2->size) + 1);
+
+		for(int i = 0 ; i < MAX(bigInt1->size, bigInt2->size); i++) {
+			//cant compare directly between 2 BigInts because
+			//of possibility of differing sizes
+			val1 = 0; val2 = 0; sum = 0;
 			
+			if(i < bigInt1->size) val1 = bigInt1->bytes[i];
+			if(i < bigInt2->size) val2 = bigInt2->bytes[i];
+
+			sum = val1 + val2 + carry;
+			
+			if(sum > 0xFF) {
+				carry = (sum >> 8) & 0xFF;
+				sum = sum & 0xFF;
+			}
+			else carry = 0;
+
+			//printf("i: %d, Val1: %u, Val2 %u, Sum: %u, Sum2: %u, Carry: %u\n", 
+			//	i, val1&0xFF, val2&0xFF, sum, sum2,  carry);
+
+			output->bytes[i] = sum;
 		}
+		output->bytes[MAX(bigInt1->size, bigInt2->size)] = carry;
 		
 	}
-	//else subtractBigInt()
 
 	return output;
 }
