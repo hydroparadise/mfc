@@ -44,24 +44,17 @@ void static bigIntTest02() {
 	t1 = 0xFFFF00FF;  //positive integer
 	t2 = 0x00FFFFFE;  //negative integer
 
-
 	printf("testBi1:  %X, %d\n", t1,t1);
 	printf("testBi2:  %X, %d\n", t2,t2);
-
 
 	//direct assignmnet method as to avoid using initBigInt_int as
 	//right now, unsigned int version has not yet been implemented
 	*(int *)testBi1->bytes = t1;
 	*(int *)testBi2->bytes = t2;
 
-
 	//for(int i = testBi1->size -1 ; i > -1 ; i--) {
 	//	printf("%02X", testBi1->bytes[i] & 0xFF);
 	//} printf("\n");
-	char t;
-	t = 0;
-	printf("t: %02X\n", (t-1)&0xFF  );
-
 
 	printf("addAbsoluteBigInt check:  \n");
 	testBi = addAbsoluteBigInt(testBi1,testBi2);
@@ -70,14 +63,12 @@ void static bigIntTest02() {
 		printf("%02X", testBi->bytes[i] & 0xFF);
 	} printf("\n");
 	
-
 	printf("subtractAbsoluteBigInt check: \n");
 	testBi = subtractAbsoluteBigInt(testBi1,testBi2);
 	printf("Size: %d\n", testBi->size);
 	for(int i = testBi->size -1 ; i > -1 ; i--) {
 		printf("%02X", testBi->bytes[i] & 0xFF);
 	} printf("\n");
-
 
 	freeBigInt(testBi1);
 	freeBigInt(testBi2);

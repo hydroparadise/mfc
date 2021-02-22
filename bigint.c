@@ -279,7 +279,6 @@ BigInt* subtractAbsoluteBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 
 		//sort out the bigger magnitude needed for proper subtraction 
 		BigInt *maxMag, *minMag;
-
 		maxMag = maxMagnitudeBigInt(bigInt1, bigInt2);
 		if(maxMag == bigInt1) minMag = bigInt2;
 		else minMag = bigInt1;	
@@ -346,19 +345,20 @@ BigInt* subtractBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 	output = NULL;
 	
 	if(bigInt1 != NULL && bigInt2 != NULL) {	
+		BigInt *maxMag, *minMag;
+		maxMag = maxMagnitudeBigInt(bigInt1, bigInt2);
+		if(maxMag == bigInt1) minMag = bigInt2;
+		else minMag = bigInt1;	
 
 		if(bigInt1->isNegative == bigInt2->isNegative) {
-			
-			
+			output = subtractAbsoluteBigInt(bigInt1, bigInt2);
+			if(maxMag == bigInt1) output->isNegative = maxMag->isNegative;
+			else output->isNegative ^= maxMag->isNegative;
 		} 
 		else {
-			
 			output = addAbsoluteBigInt(bigInt1, bigInt2);
-			
+			output->isNegative = maxMag->isNegative; 
 		}		
-
-
-		
 	}
 
 	return output;
