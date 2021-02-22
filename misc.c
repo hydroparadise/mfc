@@ -88,3 +88,24 @@
 			output->bytes[output->size] = carry;
 
 
+
+		printf("This is bigInt1: \n");
+		for(int i = bigInt1->size -1 ; i > -1 ; i--) {
+			printf("%02X", bigInt1->bytes[i] & 0xFF);
+		} printf("\n");
+
+		printf("This is bigInt2: \n");
+		for(int i = bigInt2->size -1 ; i > -1 ; i--) {
+			printf("%02X", bigInt2->bytes[i] & 0xFF);
+		} printf("\n");
+
+		printf("This is maxMag: \n");
+		for(int i = maxMag->size -1 ; i > -1 ; i--) {
+			printf("%02X", maxMag->bytes[i] & 0xFF);
+		} printf("\n");
+
+		printf("This is minMag: \n");
+		for(int i = minMag->size -1 ; i > -1 ; i--) {
+			printf("%02X", minMag->bytes[i] & 0xFF);
+		} printf("\n");
+

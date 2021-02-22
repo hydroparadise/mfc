@@ -1,5 +1,6 @@
 /*
 A big-endian implementation of an arbitrary precision integer
+Magnitude orien
 Addition: Augend + Addend = Sum
 Subtraction: Minuend - Subtrahend = Difference
 Multiplication: Multiplicand x Multiplier = Product
@@ -47,17 +48,16 @@ typedef struct BigInt {
 BigInt* createBigInt(int size);
 BigInt* createBigInt_int(int value);
 BigInt* copyBigInt(BigInt *bigInt);
-BigInt* addBigInt(BigInt *bigInt1, BigInt *bigInt2);
-BigInt* subtractBigInt(BigInt *bigInt1, BigInt *bigInt2);
 int compareSizeBigInt(BigInt *bigInt1, BigInt *bigInt2);
 int compareValueBigInt(BigInt *bigInt1, BigInt *bigInt2);
 bool gtBigInt(BigInt *bigInt1, BigInt *bigInt2);
 bool ltBigInt(BigInt *bigInt1, BigInt *bigInt2);
-BigInt* maxSizeBigInt(BigInt *bigInt1, BigInt *bigInt2);
-BigInt* minSizeBigInt(BigInt *bigInt1, BigInt *bigInt2);
+BigInt* maxMagnitudeBigInt(BigInt *bigInt1, BigInt *bigInt2);
+BigInt* minMagnitudeBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* maxValueBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* minValueBigInt(BigInt *bigInt1, BigInt *bigInt2);
-
+BigInt* addBigInt(BigInt *bigInt1, BigInt *bigInt2);
+BigInt* subtractBigInt(BigInt *bigInt1, BigInt *bigInt2);
 
 /*
 Inits a BigInt with a size parameter where size is the number of bytes
@@ -93,7 +93,11 @@ BigInt* createBigInt(int size) {
 
 
 /*
-Method creates and initializes a BigInt and converts an int to byte array.  With most systems, size will be 4
+Method creates and initializes a BigInt and converts an int to byte array.  
+Converts negative ints to two's complement and assigns negative flag to
+true.
+
+With most systems, size will be 4
 */
 BigInt* createBigInt_int(int value) {
 	BigInt *output;	
@@ -114,8 +118,11 @@ BigInt* createBigInt_int(int value) {
 		error(EXIT_FAILURE, errno, "Could not allocate.");
 
 	//converts int into byte array
+	//if negative number, convert two's complement
 	for(int i = 0; i < output->size ; i++) {
-		output->bytes[i] = (char)(value >> i * 8 & 0xFF);
+		if (output->isNegative == false)
+			output->bytes[i] = (char)(value >> i * 8 & 0xFF);
+		else output->bytes[i] = (char)((~value+1) >> i * 8 & 0xFF);
 	}
 	return output;
 }
@@ -146,7 +153,7 @@ BigInt* maxMagnitudeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 	BigInt *output;
 	output = NULL;
 	if(bigInt1 != NULL && bigInt2 != NULL) {
-		char val1, val2;
+		unsigned char val1, val2;
 		for(int i = 0 ; i < MAX(bigInt1->size, bigInt2->size); i++) {
 			//cant compare directly between 2 BigInts because
 			//of possibility of differing sizes
@@ -154,24 +161,20 @@ BigInt* maxMagnitudeBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 			
 			//arg 1
 			//make sure we are within array range to grab value
-			if(i < bigInt1->size) {
-				//if positive, get value as-is
-				if(bigInt1->isNegative == false) val1 = bigInt1->bytes[i];
-				//if negative, get 2's compelement
-				else val1 = ~bigInt1->bytes[i] + 1;
-			}
+			if(i < bigInt1->size) val1 = bigInt1->bytes[i];
 
 			//arg 2
 			//make sure we are within array range to grab value
-			if(i < bigInt2->size) {
-				//if positive, get value as-is
-				if(bigInt2->isNegative == false) val2 = bigInt2->bytes[i];
-				//if negative, get 2's compelement
-				else val2 = ~bigInt2->bytes[i] + 1;
-			}
+			if(i < bigInt2->size) val2 = bigInt2->bytes[i];
 
-			if(val1 >= val2) output = bigInt1;
-			else output = bigInt2;
+			if(val1 >= val2) {
+				output = bigInt1;
+				//printf("maxMag %d: bigInt1 %02X v %02X \n", i, val1&0xFF, val2&0xFF);
+			}
+			else {
+				output = bigInt2;
+				///printf("maxMag %d: bigInt2 %02X v %02X \n", i, val1&0xFF, val2&0xFF);
+			}
 		}
 	}
 	return output;
@@ -230,20 +233,15 @@ BigInt* minValueBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 }
 
 
-/*
-Adds two BigInts, outputs new BigInt
-*/
-BigInt* addBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+BigInt* addAbsoluteBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 	BigInt *output;
 	output = NULL;
 
 	if(bigInt1 != NULL && bigInt2 != NULL) {
-		//like signs can add up straight forward
+		output = createBigInt(MAX(bigInt1->size, bigInt2->size) + 1);
 		unsigned char val1, val2, carry;
 		unsigned short sum;
-
-		output = createBigInt(MAX(bigInt1->size, bigInt2->size) + 1);
-
+		carry = 0;
 		for(int i = 0 ; i < MAX(bigInt1->size, bigInt2->size); i++) {
 			//cant compare directly between 2 BigInts because
 			//of possibility of differing sizes
@@ -266,14 +264,104 @@ BigInt* addBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 			output->bytes[i] = sum;
 		}
 		output->bytes[MAX(bigInt1->size, bigInt2->size)] = carry;
-		
+		output->isNegative = bigInt1->isNegative;
+	}
+}
+
+BigInt* subtractAbsoluteBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+	BigInt *output;
+	output = NULL;
+
+	if(bigInt1 != NULL && bigInt2 != NULL) {
+		output = createBigInt(MAX(bigInt1->size, bigInt2->size));
+		unsigned char diff, val2, borrow;
+		unsigned short val1;
+
+		//sort out the bigger magnitude needed for proper subtraction 
+		BigInt *maxMag, *minMag;
+
+		maxMag = maxMagnitudeBigInt(bigInt1, bigInt2);
+		if(maxMag == bigInt1) minMag = bigInt2;
+		else minMag = bigInt1;	
+
+		borrow = 0;	
+		for(int i = 0 ; i < MAX(maxMag->size, minMag->size); i++) {
+			//cant compare directly between 2 BigInts because
+			//of possibility of differing sizes
+			val1 = 0; val2 = 0; diff = 0;
+			
+			//arg 1
+			//make sure we are within array range to grab value
+			if(i < maxMag->size) val1 = maxMag->bytes[i];
+
+			//arg 2
+			//make sure we are within array range to grab value
+			if(i < minMag->size) val2 = minMag->bytes[i];
+
+			//printf("(val1&0xFF - borrow) >= val2): %u v %u\n", (val1&0xFF - borrow) ,val2 );
+			if((val1&0xFF - borrow) >= val2) {
+				printf("a");
+				diff = (val1 - borrow) - val2;
+				borrow = 0;
+			}
+			else {  
+				//borrowing time
+				//if val2 > val2, then it assumed that there is something
+				//that can be borrowed at maxMag->bytes[i + 1]
+				diff = ((val1&0xFF + 0x100) - borrow)  - val2;
+
+				borrow = 1;
+			}
+			//printf("i: %d, val1: %u,    val2 %u,   diff: %u, borrow: %u\n", 
+			//	i,     val1&0xFF, val2&0xFF, diff&0xFF,     borrow);
+
+			output->bytes[i] = diff;
+		}
 	}
 
 	return output;
 }
 
-BigInt* subtractBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+/*
+Adds two BigInts, outputs new BigInt
+*/
+BigInt* addBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+	BigInt *output;
+	output = NULL;
 
+	if(bigInt1 != NULL && bigInt2 != NULL) {
+		//like signs can add up straight forward
+		if(bigInt1->isNegative == bigInt2->isNegative) {
+			output = addAbsoluteBigInt(bigInt1, bigInt2);
+			output->isNegative = bigInt1->isNegative;
+		}
+		else output = subtractBigInt(bigInt1, bigInt2);
+	}
+	return output;
+}
+
+
+BigInt* subtractBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+	BigInt *output;
+	output = NULL;
+	
+	if(bigInt1 != NULL && bigInt2 != NULL) {	
+
+		if(bigInt1->isNegative == bigInt2->isNegative) {
+			
+			
+		} 
+		else {
+			
+			output = addAbsoluteBigInt(bigInt1, bigInt2);
+			
+		}		
+
+
+		
+	}
+
+	return output;
 }
 
 
