@@ -5,6 +5,8 @@
 #define MIX(x,y) (((x) < (y)) ? (x) : (y))
 
 #include "bigint.c"
+#include "bigint_test.c"
+
 #include "thread.c"
 
 
