@@ -12,10 +12,6 @@
 #include "mfc.h"
 
 
-void static bigIntTest01();
-void static bigIntTest02();
-
-
 
 int main(int argc, char **argv) {
 	printf("We gonna have some fun with maths...\n");

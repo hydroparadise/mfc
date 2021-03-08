@@ -55,13 +55,15 @@ typedef struct BigInt {
 
 //TODO: create  header for prototypes
 
-//memory related
+//create, destory, resize
 BigInt* newBigInt(int size);
 BigInt* newBigInt_int(int value);
 BigInt* newBigInt_long(long value);
 BigInt* copyBigInt_new(BigInt *bigInt);
-void resizeBigInt(BigInt *bigInt);
 void freeBigInt(BigInt *bigInt);
+void resizeBigInt(BigInt *bigInt, unsigned int newSize);
+void autoResizeBigInt(BigInt *bigInt);
+
 
 //comparsion methods
 bool eqMagBigInt(BigInt *bigInt1, BigInt *bigInt2);
@@ -70,12 +72,22 @@ BigInt* maxMagBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* minMagBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* maxBigInt(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* minBigInt(BigInt *bigInt1, BigInt *bigInt2);
-
 bool isZeroBigInt(BigInt *bigInt);
 
+//basic operation
+void incMagBigInt(BigInt *bigInt);
+void decMagBigInt(BigInt *bigInt);
 void incBigInt(BigInt *bigInt);
 void decBigInt(BigInt *bigInt);
 
+//mutable operations, first argument gets mutation
+void addMagBigInt(BigInt *bigInt1, BigInt *bigInt2);
+void subMagBigInt(BigInt *bigInt1, BigInt *bigInt2);
+void addBigInt(BigInt *bigInt1, BigInt *bigInt2);
+void subBigInt(BigInt *bigInt1, BigInt *bigInt2);
+
+
+//immutable operations, creates new object
 BigInt* addMagBigInt_new(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* subMagBigInt_new(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* addBigInt_new(BigInt *bigInt1, BigInt *bigInt2);
@@ -83,10 +95,7 @@ BigInt* subBigInt_new(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* mulBigInt_new(BigInt *bigInt1, BigInt *bigInt2);
 BigInt* divBigInt_new(BigInt *bigInt1, BigInt *bigInt2);
 
-void addMagBigInt(BigInt *bigInt1, BigInt *bigInt2);
-void subMagBigInt(BigInt *bigInt1, BigInt *bigInt2);
-void addBigInt(BigInt *bigInt1, BigInt *bigInt2);
-void subBigInt(BigInt *bigInt1, BigInt *bigInt2);
+
 
 
 
@@ -154,6 +163,14 @@ BigInt* newBigInt_int(int value) {
 	return output;
 }
 
+
+/*
+Method creates and initializes a BigInt and converts an int to byte array.  
+Converts negative ints to two's complement and assigns negative flag to
+true.
+
+With most systems, size will be 8
+*/
 BigInt* newBigInt_long(long value) {
 	BigInt *output;	
 	output = malloc(sizeof(BigInt));
@@ -199,13 +216,36 @@ BigInt* copyBigInt_new(BigInt *bigInt) {
 }
 
 /*
+Resizes
+*/
+void resizeBigInt(BigInt *bigInt, unsigned int newSize) {
+	if(bigInt != NULL){ 
+		
+		if(bigInt->size != newSize) {
+			int oldSize = bigInt->size;	
+			
+			bigInt->bytes = realloc(bigInt->bytes, newSize * sizeof(char));
+			if(!bigInt->bytes)
+				error(EXIT_FAILURE, errno, "Could not rellocate.");
+			else bigInt->size = newSize;
+			
+			//need to initialize new bytes if expanded
+			if(newSize > oldSize) {
+				for(unsigned int i = newSize - 1; i > newSize - oldSize; i--) {
+					bigInt->bytes[i] = 0;
+				}
+			}
+		}	
+	}
+}
+
+/*
 
 */
-void resizeBigInt(BigInt *bigInt) {
+void autoResizeBigInt(BigInt *bigInt) {
 	if(bigInt != NULL){ 
-		unsigned int newSize;
-		newSize = bigInt->size;
-
+		unsigned int newSize = bigInt->size;
+		
 		while(bigInt->bytes[newSize - 1] == 0 && newSize -1 > 0 ) {
 			//printf("byte at %i: %02X\n", newSize - 1, bigInt->bytes[newSize - 1]);
 			newSize--;
@@ -301,7 +341,7 @@ Returns the smaller magnitude of two BinInts
 If sizes are equal, will return first arg
 */
 BigInt* minMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
-	
+	//just use reverse logic based on maxMagBigInt
 	if(bigInt1 != NULL && bigInt2 != NULL) {
 		if(bigInt1 == maxMagBigInt(bigInt1, bigInt2)) return bigInt2;
 		else return bigInt1;
@@ -353,8 +393,7 @@ Returns false if null
 */
 bool isZeroBigInt(BigInt *bigInt) {
 	if(bigInt != NULL) {
-		unsigned int i;
-		i = bigInt->size - 1;
+		unsigned int i = bigInt->size - 1;
 		while(i > 0 && bigInt->bytes[i] == 0) {
 			i--;
 		}
@@ -376,8 +415,7 @@ void incMagBigInt(BigInt *bigInt) {
 		//do carry math if first element is about to overflow
 		//otherwise just increment
 		if(bigInt->bytes[0] == 0xFF) {
-			int i;
-			i = 0;
+			int i = 0;
 			//increase array by 1 if we're at end of array, and about to overflow
 			if(i == bigInt->size - 1 &&
 				bigInt->bytes[bigInt->size - 1] == 0xFF) {
@@ -423,6 +461,138 @@ void decMagBigInt(BigInt *bigInt){
 	}
 }
 
+
+/*
+Sums the magnitude of two BigInts storing the result to first argument.
+Expands size as needed (realloc)
+*/
+void addMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+	if(bigInt1 != NULL && bigInt2 != NULL) {
+		//increase first argument under following conditions
+		//1. Addition will cause overflow at last byte
+		//2. 2nd arg is larger than 1st
+		if(bigInt1->size == bigInt2->size &&  //make sure it's safe to dereference
+		   (unsigned short)bigInt1->bytes[bigInt1->size] + 
+                   (unsigned short)bigInt2->bytes[bigInt2->size] + 1 > 0xFF)
+			resizeBigInt(bigInt1, bigInt1->size +1);
+		else {
+			BigInt *maxMag = maxMagBigInt(bigInt1, bigInt2);
+			if((unsigned short)maxMag->bytes[maxMag->size] + 1 > 0xFF)
+				resizeBigInt(bigInt1, bigInt1->size + 1);
+			else if (maxMag->size > bigInt1->size)
+				resizeBigInt(bigInt1, maxMag->size);
+		}
+		
+		unsigned char val1, val2, carry = 0;
+		unsigned short sum;
+		for(unsigned int i = 0; i < bigInt1->size; i++) {
+			val1 = 0; val2 = 0; sum = 0;
+			
+			if(i < bigInt1->size) val1 = bigInt1->bytes[i];
+			if(i < bigInt2->size) val2 = bigInt2->bytes[i];
+
+			sum = val1 + val2 + carry;
+			bigInt1->bytes[i] = sum & 0xFF;
+
+			if(sum > 0xFF) carry = 1;
+			else carry = 0;
+		}	
+	}
+}
+
+
+/*
+Subtracts absolute magnitude of two BigInts and assigns to first argument
+*/
+void subMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+	if(bigInt1 != NULL && bigInt2 != NULL) {
+		//sort out the bigger magnitude needed for proper substitution 
+		BigInt *maxMag, *minMag;
+		maxMag = maxMagBigInt(bigInt1, bigInt2);
+		if(maxMag == bigInt1) minMag = bigInt2;
+		else minMag = bigInt1;	
+
+		//if 2nd arg is larger than 1st, risize 1st arg
+		if (maxMag->size > bigInt1->size)
+			resizeBigInt(bigInt1, maxMag->size);
+
+		unsigned char diff, val2, borrow = 0;
+		unsigned short val1;
+		for(int i = 0 ; i < MAX(maxMag->size, minMag->size); i++) {
+			//cant compare directly between 2 BigInts because
+			//of possibility of differing sizes
+			val1 = 0; val2 = 0; diff = 0;
+			
+			//arg 1
+			//make sure we are within array range to grab value
+			if(i < maxMag->size) val1 = maxMag->bytes[i];
+
+			//arg 2
+			//make sure we are within array range to grab value
+			if(i < minMag->size) val2 = minMag->bytes[i];
+
+			//printf("(val1&0xFF - borrow) >= val2): %u v %u\n", 
+			//	(val1&0xFF - borrow) ,val2 );
+			if((val1&0xFF - borrow) >= val2) {
+				diff = (val1 - borrow) - val2;
+				borrow = 0;
+			}
+			else {  
+				//borrowing time
+				//if val2 > val2, then it assumed that there is something
+				//that can be borrowed at maxMag->bytes[i + 1]
+				diff = ((val1&0xFF + 0x100) - borrow)  - val2;
+
+				borrow = 1;
+			}
+			//printf("i: %d, val1: %u,    val2 %u,   diff: %u, borrow: %u\n", 
+			//	i,     val1&0xFF, val2&0xFF, diff&0xFF,     borrow);
+
+			bigInt1->bytes[i] = diff;
+		}
+	}
+}
+
+
+/*
+Sums two BigInts storing the result to first argument.
+Expands size as needed (realloc)
+*/
+void addBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+	if(bigInt1 != NULL && bigInt2 != NULL) {
+		//like signs can add up straight forward
+		if(bigInt1->isNegative == bigInt2->isNegative) {
+			addMagBigInt(bigInt1, bigInt2);
+		}
+		else subBigInt(bigInt1, bigInt2);
+	}
+}
+
+
+/*
+Subtracts two BigInts and assigns to first argument
+Expands size as needed (realloc)
+*/
+void subBigInt(BigInt *bigInt1, BigInt *bigInt2) {
+	if(bigInt1 != NULL && bigInt2 != NULL) {	
+		BigInt *maxMag, *minMag;
+		maxMag = maxMagBigInt(bigInt1, bigInt2);
+		if(maxMag == bigInt1) minMag = bigInt2;
+		else minMag = bigInt1;	
+
+		if(bigInt1->isNegative == bigInt2->isNegative) {
+			subMagBigInt(bigInt1, bigInt2);
+			if(maxMag == bigInt1) bigInt1->isNegative = maxMag->isNegative;
+			else bigInt1->isNegative ^= maxMag->isNegative;
+		} 
+		else {
+			addMagBigInt(bigInt1, bigInt2);
+			bigInt1->isNegative = maxMag->isNegative; 
+		}		
+	}
+}
+
+
 /*
 Returns new object as sum of two BigInts magnitudes
 */
@@ -432,7 +602,7 @@ BigInt* addMagBigInt_new(BigInt *bigInt1, BigInt *bigInt2) {
 
 	if(bigInt1 != NULL && bigInt2 != NULL) {
 		output = newBigInt(MAX(bigInt1->size, bigInt2->size) + 1);
-		unsigned char val1, val2, carry;
+		unsigned char val1, val2, carry = 0;
 		unsigned short sum;
 		carry = 0;
 		for(unsigned int i = 0 ; i < MAX(bigInt1->size, bigInt2->size); i++) {
@@ -444,17 +614,15 @@ BigInt* addMagBigInt_new(BigInt *bigInt1, BigInt *bigInt2) {
 			if(i < bigInt2->size) val2 = bigInt2->bytes[i];
 
 			sum = val1 + val2 + carry;
-			
-			if(sum > 0xFF) {
-				carry = (sum >> 8) & 0xFF;
-				sum = sum & 0xFF;
-			}
+			output->bytes[i] = sum & 0xFF;
+
+			if(sum > 0xFF) carry = 1;
 			else carry = 0;
 
 			//printf("i: %d, Val1: %u, Val2 %u, Sum: %u, Sum2: %u, Carry: %u\n", 
 			//	i, val1&0xFF, val2&0xFF, sum, sum2,  carry);
 
-			output->bytes[i] = sum;
+
 		}
 		output->bytes[MAX(bigInt1->size, bigInt2->size)] = carry;
 		output->isNegative = bigInt1->isNegative;
@@ -472,16 +640,15 @@ BigInt* subMagBigInt_new(BigInt *bigInt1, BigInt *bigInt2) {
 
 	if(bigInt1 != NULL && bigInt2 != NULL) {
 		output = newBigInt(MAX(bigInt1->size, bigInt2->size));
-		unsigned char diff, val2, borrow;
-		unsigned short val1;
 
-		//sort out the bigger magnitude needed for proper subion 
+		//sort out the bigger magnitude needed for proper substitution 
 		BigInt *maxMag, *minMag;
 		maxMag = maxMagBigInt(bigInt1, bigInt2);
 		if(maxMag == bigInt1) minMag = bigInt2;
 		else minMag = bigInt1;	
 
-		borrow = 0;	
+		unsigned char diff, val2, borrow = 0;
+		unsigned short val1;	
 		for(int i = 0 ; i < MAX(maxMag->size, minMag->size); i++) {
 			//cant compare directly between 2 BigInts because
 			//of possibility of differing sizes
@@ -519,6 +686,7 @@ BigInt* subMagBigInt_new(BigInt *bigInt1, BigInt *bigInt2) {
 	return output;
 }
 
+
 /*
 Adds two BigInts, outputs new BigInt
 */
@@ -536,6 +704,7 @@ BigInt* addBigInt_new(BigInt *bigInt1, BigInt *bigInt2) {
 	}
 	return output;
 }
+
 
 /*
 subs 2nd argument from the first argument
@@ -563,6 +732,7 @@ BigInt* subBigInt_new(BigInt *bigInt1, BigInt *bigInt2) {
 
 	return output;
 }
+
 
 BigInt* mulBigInt_new(BigInt *bigInt1, BigInt *bigInt2) {
 	BigInt *output;
