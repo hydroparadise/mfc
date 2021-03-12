@@ -22,7 +22,8 @@ int main(int argc, char **argv) {
 	//bigIntTest01();	
 	//bigIntTest02();	
 	//bigIntTest03();
-	bigIntTest04();
+	//bigIntTest04();
+	bigIntTest05();
 
 	printf("Buh Bye!\n");
 	return EXIT_SUCCESS;

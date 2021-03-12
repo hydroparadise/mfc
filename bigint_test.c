@@ -1,3 +1,71 @@
+void bigIntTest05() {
+	unsigned int t1,t2,t3;
+	BigInt *testBi1, *testBi2;
+
+	testBi1 = newBigInt(1);
+
+	//testBi2 = newBigInt(1);
+	//testBi3 = newBigInt(1);
+
+	t1 = 0x1; 
+	//t2 = 0xFF;	
+	//t3 = 0xFF;
+
+	*(int *)testBi1->bytes = t1;
+	//*(int *)testBi2->bytes = t2;
+	//*(int *)testBi3->bytes = t3;
+	
+	for(int i = 0; i < 100000 && 
+		(testBi1->bytes[testBi1->size-1] == 0x01 ||
+		testBi1->bytes[testBi1->size-1] == 0x02 ||
+		testBi1->bytes[testBi1->size-1] == 0x04 ||
+		testBi1->bytes[testBi1->size-1] == 0x08 ||
+		testBi1->bytes[testBi1->size-1] == 0x10 ||
+		testBi1->bytes[testBi1->size-1] == 0x20 ||
+		testBi1->bytes[testBi1->size-1] == 0x40 ||
+		testBi1->bytes[testBi1->size-1] == 0x80 )
+		; i++) {
+
+		
+		printf("%i - %i \n", i, testBi1->size);
+
+		/*
+		for(int i = testBi1->size -1 ; i > -1 ; i--) {
+			printf("%02X", testBi1->bytes[i] & 0xFF);
+		} printf("\n");
+		*/
+
+		testBi2 = copyBigInt(testBi1);
+		addBigInt(testBi1,testBi2);
+		if(testBi1->bytes[testBi1->size-1] == 0x01 ||
+		testBi1->bytes[testBi1->size-1] == 0x02 ||
+		testBi1->bytes[testBi1->size-1] == 0x04 ||
+		testBi1->bytes[testBi1->size-1] == 0x08 ||
+		testBi1->bytes[testBi1->size-1] == 0x10 ||
+		testBi1->bytes[testBi1->size-1] == 0x20 ||
+		testBi1->bytes[testBi1->size-1] == 0x40 ||
+		testBi1->bytes[testBi1->size-1] == 0x80 )
+		freeBigInt(testBi2);
+	}
+
+
+	printf("\n");
+	for(int i = testBi1->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi1->bytes[i] & 0xFF);
+	} printf("\n");
+	printf("Size -> %i\n", testBi1->size);
+	
+	/*
+	printf("\n");
+	for(int i = testBi2->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi2->bytes[i] & 0xFF);
+	} printf("\n");
+	*/
+	
+	freeBigInt(testBi1);
+	//freeBigInt(testBi2);
+	//freeBigInt(testBi3);
+}
 
 
 void bigIntTest04() {
@@ -6,49 +74,98 @@ void bigIntTest04() {
 	//void subMagBigInt(BigInt *bigInt1, BigInt *bigInt2);
 	//void addBigInt(BigInt *bigInt1, BigInt *bigInt2);
 	//void subBigInt(BigInt *bigInt1, BigInt *bigInt2);
-
-	BigInt *bigInt;
-	bigInt = newBigInt(1);
-
+	unsigned int t1, t2, t3, t4;
 	BigInt *testBi1,*testBi2,*testBi3, *testBi4;
 
-	testBi1 = newBigInt_int(100);
-	testBi2 = newBigInt_int(243434);
-	testBi3 = newBigInt_int(0);
-	testBi4 = newBigInt_int(-34);
+	testBi1 = newBigInt(4);
+	testBi2 = newBigInt(4);
+	testBi3 = newBigInt(4);
+	testBi4 = newBigInt(4);
+
+	t1 = 0x000000FF;
+	t2 = 0x00FFFFFE;  
+	t3 = 0x00000000; 
+	t4 = 0xFFFFFFFE; 
+
+	*(int *)testBi1->bytes = t1;
+	*(int *)testBi2->bytes = t2;
+	*(int *)testBi3->bytes = t3;
+	*(int *)testBi4->bytes = t4;
 
 
-	printf("addBigInt_new check:  \n");
+	printf("addMagBigInt check:  ");
+	for(int i = testBi1->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi1->bytes[i] & 0xFF);
+	} printf(" + ");
+	for(int i = testBi2->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi2->bytes[i] & 0xFF);
+	} printf(" = ");
 	addMagBigInt(testBi1,testBi2);
-	printf("Size: %d\n", testBi1->size);
 	for(int i = testBi1->size -1 ; i > -1 ; i--) {
 		printf("%02X", testBi1->bytes[i] & 0xFF);
 	} printf("\n");
 
+	printf("addMagBigInt check:  ");
+	for(int i = testBi1->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi1->bytes[i] & 0xFF);
+	} printf(" + ");
+	for(int i = testBi3->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi3->bytes[i] & 0xFF);
+	} printf(" = ");
 	addMagBigInt(testBi1,testBi3);
-	printf("Size: %d\n", testBi1->size);
 	for(int i = testBi1->size -1 ; i > -1 ; i--) {
 		printf("%02X", testBi1->bytes[i] & 0xFF);
 	} printf("\n");
 
+	printf("addMagBigInt check:  ");
+	for(int i = testBi1->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi1->bytes[i] & 0xFF);
+	} printf(" + ");
+	for(int i = testBi4->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi4->bytes[i] & 0xFF);
+	} printf(" = ");
 	addMagBigInt(testBi1,testBi4);
-	printf("Size: %d\n", testBi1->size);
 	for(int i = testBi1->size -1 ; i > -1 ; i--) {
 		printf("%02X", testBi1->bytes[i] & 0xFF);
 	} printf("\n");
 
-	addMagBigInt(testBi1,testBi1);
-	printf("Size: %d\n", testBi1->size);
+	printf("addBigInt check:  ");
+	for(int i = testBi1->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi1->bytes[i] & 0xFF);
+	} printf(" + ");
+	for(int i = testBi1->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi1->bytes[i] & 0xFF);
+	} printf(" = ");
+	addBigInt(testBi1,testBi1);
 	for(int i = testBi1->size -1 ; i > -1 ; i--) {
 		printf("%02X", testBi1->bytes[i] & 0xFF);
 	} printf("\n");
 
-	addBigInt(testBi1,testBi4);
-	printf("Size: %d\n", testBi1->size);
+	
+	printf("subBigInt check:  ");
+	for(int i = testBi1->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi1->bytes[i] & 0xFF);
+	} printf(" - ");
+	for(int i = testBi4->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi4->bytes[i] & 0xFF);
+	} printf(" = ");
+	subBigInt(testBi1,testBi4);
 	for(int i = testBi1->size -1 ; i > -1 ; i--) {
 		printf("%02X", testBi1->bytes[i] & 0xFF);
 	} printf("\n");
 
+	printf("subBigInt check:  ");
+	for(int i = testBi4->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi4->bytes[i] & 0xFF);
+	} printf(" - ");
+	for(int i = testBi1->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi1->bytes[i] & 0xFF);
+	} printf(" = ");
+	subBigInt(testBi4,testBi1);
+	if(testBi4->isNegative == true) printf("-");
+	for(int i = testBi4->size -1 ; i > -1 ; i--) {
+		printf("%02X", testBi4->bytes[i] & 0xFF);
+	} printf("\n");
 
 	freeBigInt(testBi1);
 	freeBigInt(testBi2);
@@ -77,7 +194,6 @@ void bigIntTest03() {
 	t2 = 0x00FFFFFE;  
 	t3 = 0x00000000; 
 	t4 = 0xFFFFFFFE; 
-	
 
 	*(int *)testBi1->bytes = t1;
 	*(int *)testBi2->bytes = t2;
