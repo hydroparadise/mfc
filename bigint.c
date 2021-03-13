@@ -9,7 +9,9 @@ Exponentiation: Base ^ Exponent = Power
 Nth Root:  Degree V Radicand = Root
 Logarithm: log base (antilogarithm) = logarithm
 
-
+size * ln(16^2)
+----------------  =  number of digits in base 10
+   ln(10)
 
 
 */
@@ -504,7 +506,6 @@ void subMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 
 		//printf("maxMag->size %u\n", maxMag->size);
 		//printf("minMag->size %u\n", maxMag->size);
-
 
 		unsigned char diff, val2, borrow = 0;
 		unsigned short val1;

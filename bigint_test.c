@@ -15,37 +15,23 @@ void bigIntTest05() {
 	//*(int *)testBi2->bytes = t2;
 	//*(int *)testBi3->bytes = t3;
 	
-	for(int i = 0; i < 100000 && 
-		(testBi1->bytes[testBi1->size-1] == 0x01 ||
-		testBi1->bytes[testBi1->size-1] == 0x02 ||
-		testBi1->bytes[testBi1->size-1] == 0x04 ||
-		testBi1->bytes[testBi1->size-1] == 0x08 ||
-		testBi1->bytes[testBi1->size-1] == 0x10 ||
-		testBi1->bytes[testBi1->size-1] == 0x20 ||
-		testBi1->bytes[testBi1->size-1] == 0x40 ||
-		testBi1->bytes[testBi1->size-1] == 0x80 )
-		; i++) {
+	for(unsigned int i = 0; i < 0xFFFFFFFF; i++) {
 
-		
-		printf("%i - %i \n", i, testBi1->size);
+		if(i % 10000 == 0)
+			printf("%i - %i \n", i, testBi1->size);
 
 		/*
 		for(int i = testBi1->size -1 ; i > -1 ; i--) {
 			printf("%02X", testBi1->bytes[i] & 0xFF);
 		} printf("\n");
 		*/
-
+		
+		/*
 		testBi2 = copyBigInt(testBi1);
 		addBigInt(testBi1,testBi2);
-		if(testBi1->bytes[testBi1->size-1] == 0x01 ||
-		testBi1->bytes[testBi1->size-1] == 0x02 ||
-		testBi1->bytes[testBi1->size-1] == 0x04 ||
-		testBi1->bytes[testBi1->size-1] == 0x08 ||
-		testBi1->bytes[testBi1->size-1] == 0x10 ||
-		testBi1->bytes[testBi1->size-1] == 0x20 ||
-		testBi1->bytes[testBi1->size-1] == 0x40 ||
-		testBi1->bytes[testBi1->size-1] == 0x80 )
 		freeBigInt(testBi2);
+		*/
+		addBigInt(testBi1,testBi1);
 	}
 
 
