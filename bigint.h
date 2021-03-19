@@ -1,4 +1,8 @@
 //create, destory, resize
+
+#define MAX(x,y) (((x) > (y)) ? (x) : (y))
+#define MIX(x,y) (((x) < (y)) ? (x) : (y))
+
 BigInt* newBigInt(int size);
 BigInt* newBigInt_int(int value);
 BigInt* newBigInt_long(long value);

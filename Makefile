@@ -1,5 +1,5 @@
 output: main.c
-	gcc -pthread main.c
+	gcc -mavx512f -pthread main.c
 
 	
 clean:

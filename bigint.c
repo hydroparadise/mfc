@@ -9,7 +9,8 @@ Exponentiation: Base ^ Exponent = Power
 Nth Root:  Degree V Radicand = Root
 Logarithm: log base (antilogarithm) = logarithm
 
-size * ln(16^2)
+
+size * ln(2^8)
 ----------------  =  number of digits in base 10
    ln(10)
 
@@ -19,8 +20,8 @@ size * ln(16^2)
 #ifndef MFC_BIGINT
 #define MFC_BIGINT
 
-//#include <stdio.h>
-//#include <stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <error.h>
@@ -60,8 +61,8 @@ typedef struct BigInt {
 Inits a BigInt with a size parameter where size is the number of bytes
 */
 BigInt* newBigInt(int size) {
-	BigInt *output;
-	output = NULL;	
+	BigInt *output = NULL;	
+
 	if(size > 0) {
 		output = malloc(sizeof(BigInt));
 		if(!output)
@@ -105,7 +106,7 @@ BigInt* newBigInt_int(int value) {
 
 
 	*(int *)&output->size = sizeof(value);
-	output->bytes = malloc(output->size * sizeof(char));
+	output->bytes = malloc(output->size * sizeof(unsigned char));
 	if(!output->bytes)
 		error(EXIT_FAILURE, errno, "Could not allocate.");
 
@@ -113,8 +114,8 @@ BigInt* newBigInt_int(int value) {
 	//if negative number, convert two's complement
 	for(unsigned int i = 0; i < output->size ; i++) {
 		if (output->isNegative == false)
-			output->bytes[i] = (char)(value >> i * 8 & 0xFF);
-		else output->bytes[i] = (char)((~value+1) >> i * 8 & 0xFF);
+			output->bytes[i] = (unsigned char)(value >> i * 8 & 0xFF);
+		else output->bytes[i] = (unsigned char)((~value+1) >> i * 8 & 0xFF);
 	}
 	return output;
 }
@@ -139,7 +140,7 @@ BigInt* newBigInt_long(long value) {
 	if(value >= 0) output->isNegative = false;
 	else output->isNegative = true;	
 
-
+	
 	*(int *)&output->size = sizeof(value);
 	output->bytes = malloc(output->size * sizeof(unsigned char));
 	if(!output->bytes)
@@ -246,10 +247,9 @@ Returns false if either argument doesn't pass NULL check
 */
 bool eqMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 	if(bigInt1 != NULL && bigInt2 != NULL) {
-		unsigned int i;
-		unsigned char val1, val2;		
-		i = MAX(bigInt1->size, bigInt2->size) - 1;
-		
+		unsigned int i = MAX(bigInt1->size, bigInt2->size) - 1;
+		unsigned char val1 = 0, val2 = 0;		
+
 		do {
 			val1 = 0; val2 = 0;
 			if(i < bigInt1->size) val1 = bigInt1->bytes[i];
@@ -283,8 +283,7 @@ Returns pointer to the larger magnitude of two BinInts
 If magnitudes are equal, will return first arg
 */
 BigInt* maxMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
-	BigInt *output;
-	output = NULL;
+	BigInt *output = NULL;
 	if(bigInt1 != NULL && bigInt2 != NULL) {
 		unsigned char val1, val2;
 		for(int i = 0 ; i < MAX(bigInt1->size, bigInt2->size); i++) {
@@ -424,9 +423,9 @@ Use decBigInt for proper sign handling
 */
 void decMagBigInt(BigInt *bigInt){
 	if(bigInt != NULL && isZeroBigInt(bigInt) == false) {
+		//if first position is zero, borrow from next position
 		if(bigInt->bytes[0] == 0) {
-			int i;
-			i = 0;
+			int i = 0;
 			do {
 				bigInt->bytes[i]--;
 				i++;
@@ -501,7 +500,6 @@ void subMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 		if (maxMag->size > bigInt1->size) {
 			//printf("resize event a: ");	
 			resizeBigInt(bigInt1, maxMag->size);
-
 		}		
 
 		//printf("maxMag->size %u\n", maxMag->size);
