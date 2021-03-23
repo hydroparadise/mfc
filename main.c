@@ -22,11 +22,11 @@ int main(int argc, char **argv) {
 
 	printf("%lu\n",ULONG_MAX);
 
-	//bigIntTest01();	
-	//bigIntTest02();	
-	//bigIntTest03();
-	//bigIntTest04();
-	//bigIntTest05();
+	bigIntTest01();	
+	bigIntTest02();	
+	bigIntTest03();
+	bigIntTest04();
+	bigIntTest05();
 
 	printf("Buh Bye!\n");
 	return EXIT_SUCCESS;

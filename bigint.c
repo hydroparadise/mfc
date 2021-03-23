@@ -25,7 +25,7 @@ size * ln(2^8)
 #include <stdbool.h>
 #include <errno.h>
 #include <error.h>
-
+#include <limits.h>
 
 /*
 Analysis:
@@ -51,14 +51,14 @@ typedef struct BigInt {
 	unsigned int size;
 	bool isNegative;
 	//BigIntFlags flags;
-	unsigned char *bytes;
+	unsigned int *chunks;
 } BigInt;
 
 
 #include "bigint.h"
 
 /*
-Inits a BigInt with a size parameter where size is the number of bytes
+Inits a BigInt with a size parameter where size is the number of chunks
 */
 BigInt* newBigInt(int size) {
 	BigInt *output = NULL;	
@@ -76,8 +76,8 @@ BigInt* newBigInt(int size) {
 		output->isNegative = false;
 		output->size = size;
 
-		output->bytes = calloc(size, sizeof(char));
-		if(!output->bytes)
+		output->chunks = calloc(size, sizeof(unsigned int));
+		if(!output->chunks)
 			error(EXIT_FAILURE, errno, "Could not allocate byte array.");
 	}
 
@@ -105,18 +105,16 @@ BigInt* newBigInt_int(int value) {
 	else output->isNegative = true;	
 
 
-	*(int *)&output->size = sizeof(value);
-	output->bytes = malloc(output->size * sizeof(unsigned char));
-	if(!output->bytes)
+	*(unsigned int *)&output->size = 1;
+	output->chunks = malloc(output->size * sizeof(unsigned int));
+	if(!output->chunks)
 		error(EXIT_FAILURE, errno, "Could not allocate.");
 
 	//converts int into byte array
 	//if negative number, convert two's complement
-	for(unsigned int i = 0; i < output->size ; i++) {
-		if (output->isNegative == false)
-			output->bytes[i] = (unsigned char)(value >> i * 8 & 0xFF);
-		else output->bytes[i] = (unsigned char)((~value+1) >> i * 8 & 0xFF);
-	}
+	if (output->isNegative == true) 
+		output->chunks[0] = (unsigned int)(~value+1);
+	else output->chunks[0] = value;
 	return output;
 }
 
@@ -126,7 +124,7 @@ Method creates and initializes a BigInt and converts an int to byte array.
 Converts negative ints to two's complement and assigns negative flag to
 true.
 
-With most systems, size will be 8
+With most systems, size will be 2
 */
 BigInt* newBigInt_long(long value) {
 	BigInt *output;	
@@ -141,17 +139,18 @@ BigInt* newBigInt_long(long value) {
 	else output->isNegative = true;	
 
 	
-	*(int *)&output->size = sizeof(value);
-	output->bytes = malloc(output->size * sizeof(unsigned char));
-	if(!output->bytes)
+	*(int *)&output->size = sizeof(unsigned long)/sizeof(unsigned int);
+	output->chunks = malloc(output->size * sizeof(unsigned int));
+	if(!output->chunks)
 		error(EXIT_FAILURE, errno, "Could not allocate.");
 
 	//converts int into byte array
 	//if negative number, convert two's complement
 	for(unsigned int i = 0; i < output->size ; i++) {
 		if (output->isNegative == false)
-			output->bytes[i] = (unsigned char)(value >> i * 8 & 0xFF);
-		else output->bytes[i] = (unsigned char)((~value+1) >> i * 8 & 0xFF);
+			output->chunks[i] = (unsigned int)(value >> i * sizeof(unsigned int) & UINT_MAX);
+		else output->chunks[i] = 
+			(unsigned int)((~value+1) >> i * sizeof(unsigned int) & UINT_MAX);
 	}
 	return output;
 }
@@ -164,9 +163,9 @@ BigInt* copyBigInt(BigInt *bigInt) {
 	if(bigInt != NULL) {
 		output = newBigInt(bigInt->size);
 		for(unsigned int i = 0; i < bigInt->size ; i++) {
-			output->bytes[i] = bigInt->bytes[i];
+			output->chunks[i] = bigInt->chunks[i];
 
-			if(output->bytes[i] != bigInt->bytes[i])
+			if(output->chunks[i] != bigInt->chunks[i])
 				printf("we go some corruptions");
 		}
 	}
@@ -184,32 +183,32 @@ void resizeBigInt(BigInt *bigInt, unsigned int newSize) {
 			int oldSize = bigInt->size;	
 			
 			//printf("Resizing... ");
-			bigInt->bytes = realloc(bigInt->bytes, newSize * sizeof(unsigned char));
+			bigInt->chunks = realloc(bigInt->chunks, newSize * sizeof(unsigned int));
 			//printf("resized.\n");
-			if(!bigInt->bytes)
+			if(!bigInt->chunks)
 				error(EXIT_FAILURE, errno, "Could not rellocate.");
 			else bigInt->size = newSize;
 			
 			//printf(" newSize > oldSize : %i > %i \n", newSize , oldSize);
-			//need to initialize new bytes if expanded
+			//need to initialize new chunks if expanded
 			if(newSize > oldSize) {
 				for(unsigned int i = newSize - 1; i > oldSize -1; i--) {
 
-					bigInt->bytes[i] = 0; bigInt->bytes[i] = 0;
+					bigInt->chunks[i] = 0; bigInt->chunks[i] = 0;
 				}
 
 				/*
 				printf("check : %02X%02X  \n", 
-						bigInt->bytes[bigInt->size - 1],
-						bigInt->bytes[bigInt->size - 2]);
+						bigInt->chunks[bigInt->size - 1],
+						bigInt->chunks[bigInt->size - 2]);
 
 				for(unsigned int i = newSize - 1; i < newSize - oldSize; i--) {
-					bigInt->bytes[i] = 0;
+					bigInt->chunks[i] = 0;
 				}
 
-				if(bigInt->bytes[bigInt->size - 1] != 0) {
+				if(bigInt->chunks[bigInt->size - 1] != 0) {
 					printf("we have a problem : %02X  \n", 
-						bigInt->bytes[bigInt->size - 1]);
+						bigInt->chunks[bigInt->size - 1]);
 					printf("%i v %i v %i \n", oldSize, newSize, bigInt->size);
 				}
 				*/
@@ -225,16 +224,16 @@ void autoResizeBigInt(BigInt *bigInt) {
 	if(bigInt != NULL){ 
 		unsigned int newSize = bigInt->size;
 		
-		while(bigInt->bytes[newSize - 1] == 0 && newSize -1 > 0 ) {
-			//printf("byte at %i: %02X\n", newSize - 1, bigInt->bytes[newSize - 1]);
+		while(bigInt->chunks[newSize - 1] == 0 && newSize -1 > 0 ) {
+			//printf("byte at %i: %02X\n", newSize - 1, bigInt->chunks[newSize - 1]);
 			newSize--;
 		}
-		//printf("byte at %i: %02X\n", newSize - 1, bigInt->bytes[newSize - 1]);
+		//printf("byte at %i: %02X\n", newSize - 1, bigInt->chunks[newSize - 1]);
 		//printf("newSize: %i\n", newSize);		
 		if(bigInt->size != newSize) {
 					
-			bigInt->bytes = realloc(bigInt->bytes, newSize * sizeof(char));
-			if(!bigInt->bytes)
+			bigInt->chunks = realloc(bigInt->chunks, newSize * sizeof(unsigned int));
+			if(!bigInt->chunks)
 				error(EXIT_FAILURE, errno, "Could not rellocate.");
 			else bigInt->size = newSize;
 		}
@@ -248,12 +247,12 @@ Returns false if either argument doesn't pass NULL check
 bool eqMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 	if(bigInt1 != NULL && bigInt2 != NULL) {
 		unsigned int i = MAX(bigInt1->size, bigInt2->size) - 1;
-		unsigned char val1 = 0, val2 = 0;		
+		unsigned int val1 = 0, val2 = 0;		
 
 		do {
 			val1 = 0; val2 = 0;
-			if(i < bigInt1->size) val1 = bigInt1->bytes[i];
-			if(i < bigInt2->size) val2 = bigInt2->bytes[i];
+			if(i < bigInt1->size) val1 = bigInt1->chunks[i];
+			if(i < bigInt2->size) val2 = bigInt2->chunks[i];
 
 			//printf("i: %i  %02X v %02X -> %i\n", i, val1, val2, val1 == val2);
 		} while (i-- > 0 && val1 == val2);
@@ -285,7 +284,7 @@ If magnitudes are equal, will return first arg
 BigInt* maxMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 	BigInt *output = NULL;
 	if(bigInt1 != NULL && bigInt2 != NULL) {
-		unsigned char val1, val2;
+		unsigned int val1, val2;
 		for(int i = 0 ; i < MAX(bigInt1->size, bigInt2->size); i++) {
 			//cant compare directly between 2 BigInts because
 			//of possibility of differing sizes
@@ -293,11 +292,11 @@ BigInt* maxMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 			
 			//arg 1
 			//make sure we are within array range to grab value
-			if(i < bigInt1->size) val1 = bigInt1->bytes[i];
+			if(i < bigInt1->size) val1 = bigInt1->chunks[i];
 
 			//arg 2
 			//make sure we are within array range to grab value
-			if(i < bigInt2->size) val2 = bigInt2->bytes[i];
+			if(i < bigInt2->size) val2 = bigInt2->chunks[i];
 
 			if(val1 >= val2) {
 				output = bigInt1;
@@ -371,10 +370,10 @@ Returns false if null
 bool isZeroBigInt(BigInt *bigInt) {
 	if(bigInt != NULL) {
 		unsigned int i = bigInt->size - 1;
-		while(i > 0 && bigInt->bytes[i] == 0) {
+		while(i > 0 && bigInt->chunks[i] == 0) {
 			i--;
 		}
-		if(i == 0 && bigInt->bytes[i] == 0)
+		if(i == 0 && bigInt->chunks[i] == 0)
 			return true;
 		else return false;
 	}
@@ -391,26 +390,26 @@ void incMagBigInt(BigInt *bigInt) {
 
 		//do carry math if first element is about to overflow
 		//otherwise just increment
-		if(bigInt->bytes[0] == 0xFF) {
+		if(bigInt->chunks[0] == UINT_MAX) {
 			int i = 0;
 			//increase array by 1 if we're at end of array, and about to overflow
 			if(i == bigInt->size - 1 &&
-				bigInt->bytes[bigInt->size - 1] == 0xFF) {
-				bigInt->bytes = realloc(bigInt->bytes, 
-					(bigInt->size + 1) * sizeof(char));
-				if(!bigInt->bytes)
+				bigInt->chunks[bigInt->size - 1] == UINT_MAX) {
+				bigInt->chunks = realloc(bigInt->chunks, 
+					(bigInt->size + 1) * sizeof(unsigned int));
+				if(!bigInt->chunks)
 					error(EXIT_FAILURE, errno, "Could not rellocate.");
 				bigInt->size++;
 			}
 
 			do {
-				bigInt->bytes[i]++;
+				bigInt->chunks[i]++;
 				i++;
 			}
-			while(i < bigInt->size - 1 && bigInt->bytes[i] == 0xFF);
-			bigInt->bytes[i]++;
+			while(i < bigInt->size - 1 && bigInt->chunks[i] == UINT_MAX);
+			bigInt->chunks[i]++;
 		}
-		else bigInt->bytes[0]++;
+		else bigInt->chunks[0]++;
 	}
 }
 
@@ -424,17 +423,17 @@ Use decBigInt for proper sign handling
 void decMagBigInt(BigInt *bigInt){
 	if(bigInt != NULL && isZeroBigInt(bigInt) == false) {
 		//if first position is zero, borrow from next position
-		if(bigInt->bytes[0] == 0) {
+		if(bigInt->chunks[0] == 0) {
 			int i = 0;
 			do {
-				bigInt->bytes[i]--;
+				bigInt->chunks[i]--;
 				i++;
 			}
-			while(i < bigInt->size && bigInt->bytes[i] == 0);
-			bigInt->bytes[i]--;
+			while(i < bigInt->size && bigInt->chunks[i] == 0);
+			bigInt->chunks[i]--;
 		
 		}
-		else bigInt->bytes[0]--;
+		else bigInt->chunks[0]--;
 	}
 }
 
@@ -450,14 +449,14 @@ void addMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 		//1. Addition will cause overflow at last byte
 		//2. 2nd arg is larger than 1st
 		if(bigInt1->size == bigInt2->size &&  //make sure it's safe to dereference
-		   (unsigned short)bigInt1->bytes[bigInt1->size-1] + 
-                   (unsigned short)bigInt2->bytes[bigInt2->size-1] + 1 > 0xFF){
+		   (unsigned long)bigInt1->chunks[bigInt1->size-1] + 
+                   (unsigned long)bigInt2->chunks[bigInt2->size-1] + 1 > UINT_MAX){
 			//printf("resize event 1 \n");
 			resizeBigInt(bigInt1, bigInt1->size +1);
 		}
 		else {
 			BigInt *maxMag = maxMagBigInt(bigInt1, bigInt2);
-			if((unsigned short)maxMag->bytes[maxMag->size-1] + 1 > 0xFF){
+			if((unsigned long)maxMag->chunks[maxMag->size-1] + 1 > UINT_MAX){
 				//printf("resize event 2 \n");
 				resizeBigInt(bigInt1, bigInt1->size + 1);
 			}
@@ -467,18 +466,18 @@ void addMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 			}
 		}
 		
-		unsigned char val1, val2, carry = 0;
-		unsigned short sum;
+		unsigned long val1, val2, carry = 0;
+		unsigned long sum;
 		for(unsigned int i = 0; i < bigInt1->size; i++) {
 			val1 = 0; val2 = 0; sum = 0;
 			
-			if(i < bigInt1->size) val1 = bigInt1->bytes[i];
-			if(i < bigInt2->size) val2 = bigInt2->bytes[i];
+			if(i < bigInt1->size) val1 = bigInt1->chunks[i];
+			if(i < bigInt2->size) val2 = bigInt2->chunks[i];
 
 			sum = val1 + val2 + carry;
-			bigInt1->bytes[i] = sum & 0xFF;
+			bigInt1->chunks[i] = sum & UINT_MAX;
 
-			if(sum > 0xFF) carry = 1;
+			if(sum > UINT_MAX) carry = 1;
 			else carry = 0;
 		}	
 	}
@@ -505,8 +504,9 @@ void subMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 		//printf("maxMag->size %u\n", maxMag->size);
 		//printf("minMag->size %u\n", maxMag->size);
 
-		unsigned char diff, val2, borrow = 0;
-		unsigned short val1;
+
+		unsigned long val1, diff, val2;
+		unsigned char borrow = 0;
 		for(int i = 0 ; i < MAX(maxMag->size, minMag->size); i++) {
 			//cant compare directly between 2 BigInts because
 			//of possibility of differing sizes
@@ -515,14 +515,14 @@ void subMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 			//arg 1
 			//make sure we are within array range to grab value
 			if(i < maxMag->size) {
-				val1 = maxMag->bytes[i];
+				val1 = maxMag->chunks[i];
 				//printf("A");
 			}
 
 			//arg 2
 			//make sure we are within array range to grab value
 			if(i < minMag->size) { 
-				val2 = minMag->bytes[i];
+				val2 = minMag->chunks[i];
 				//printf("B");
 			}
 			
@@ -532,15 +532,15 @@ void subMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 			printf("val1&0xFF - borrow: %u\n", val1&0xFF - borrow);
 			*/
 
-			if((val1&0xFF - borrow) >= val2) {
+			if((val1&UINT_MAX - borrow) >= val2) {
 				diff = (val1 - borrow) - val2;
 				borrow = 0;
 			}
 			else {  
 				//borrowing time
 				//if val2 > val2, then it assumed that there is something
-				//that can be borrowed at maxMag->bytes[i + 1]
-				diff = ((val1&0xFF + 0x100) - borrow)  - val2;
+				//that can be borrowed at maxMag->chunks[i + 1]
+				diff = ((val1&UINT_MAX + (unsigned long)(UINT_MAX) + 1) - borrow)  - val2;
 
 				borrow = 1;
 			}
@@ -550,7 +550,7 @@ void subMagBigInt(BigInt *bigInt1, BigInt *bigInt2) {
 				i,     val1&0xFF, val2&0xFF, diff&0xFF,     borrow);
 			*/
 
-			bigInt1->bytes[i] = diff;
+			bigInt1->chunks[i] = diff;
 		}
 	}
 }
@@ -617,30 +617,49 @@ BigInt* addMagBigInt_new(BigInt *bigInt1, BigInt *bigInt2) {
 	output = NULL;
 
 	if(bigInt1 != NULL && bigInt2 != NULL) {
-		output = newBigInt(MAX(bigInt1->size, bigInt2->size) + 1);
-		unsigned char val1, val2, carry = 0;
-		unsigned short sum;
+
+		if(bigInt1->size == bigInt2->size &&  //make sure it's safe to dereference
+		   (unsigned long)bigInt1->chunks[bigInt1->size-1] + 
+                   (unsigned long)bigInt2->chunks[bigInt2->size-1] + 1 > UINT_MAX){
+			//printf("resize event 1 \n");
+			output = newBigInt(MAX(bigInt1->size, bigInt2->size) + 1);
+		}
+		else {
+			BigInt *maxMag = maxMagBigInt(bigInt1, bigInt2);
+			if((unsigned long)maxMag->chunks[maxMag->size-1] + 1 > UINT_MAX){
+				//printf("resize event 2 \n");
+				output = newBigInt(MAX(bigInt1->size, bigInt2->size) + 1);
+			}
+			else {
+				//printf("resize event 3 \n");
+				output = newBigInt(MAX(bigInt1->size, bigInt2->size));
+			}
+		}
+
+		unsigned long val1, val2, sum;
+		unsigned char carry = 0;
+
 		carry = 0;
 		for(unsigned int i = 0 ; i < MAX(bigInt1->size, bigInt2->size); i++) {
 			//cant compare directly between 2 BigInts because
 			//of possibility of differing sizes
 			val1 = 0; val2 = 0; sum = 0;
 			
-			if(i < bigInt1->size) val1 = bigInt1->bytes[i];
-			if(i < bigInt2->size) val2 = bigInt2->bytes[i];
+			if(i < bigInt1->size) val1 = bigInt1->chunks[i];
+			if(i < bigInt2->size) val2 = bigInt2->chunks[i];
 
 			sum = val1 + val2 + carry;
-			output->bytes[i] = sum & 0xFF;
+			output->chunks[i] = sum & UINT_MAX;
 
-			if(sum > 0xFF) carry = 1;
+			if(sum > UINT_MAX) carry = 1;
 			else carry = 0;
 
-			//printf("i: %d, Val1: %u, Val2 %u, Sum: %u, Sum2: %u, Carry: %u\n", 
-			//	i, val1&0xFF, val2&0xFF, sum, sum2,  carry);
+			printf("i: %d, Val1: %u, Val2 %u, Sum: %lu, Carry: %u\n", 
+				i, val1, val2, sum,  carry);
 
 
 		}
-		output->bytes[MAX(bigInt1->size, bigInt2->size)] = carry;
+		output->chunks[MAX(bigInt1->size, bigInt2->size)] = carry;
 		output->isNegative = bigInt1->isNegative;
 	}
 }
@@ -663,8 +682,8 @@ BigInt* subMagBigInt_new(BigInt *bigInt1, BigInt *bigInt2) {
 		if(maxMag == bigInt1) minMag = bigInt2;
 		else minMag = bigInt1;	
 
-		unsigned char diff, val2, borrow = 0;
-		unsigned short val1;	
+		unsigned int diff, val2, borrow = 0;
+		unsigned long val1;	
 		for(int i = 0 ; i < MAX(maxMag->size, minMag->size); i++) {
 			//cant compare directly between 2 BigInts because
 			//of possibility of differing sizes
@@ -672,30 +691,30 @@ BigInt* subMagBigInt_new(BigInt *bigInt1, BigInt *bigInt2) {
 			
 			//arg 1
 			//make sure we are within array range to grab value
-			if(i < maxMag->size) val1 = maxMag->bytes[i];
+			if(i < maxMag->size) val1 = maxMag->chunks[i];
 
 			//arg 2
 			//make sure we are within array range to grab value
-			if(i < minMag->size) val2 = minMag->bytes[i];
+			if(i < minMag->size) val2 = minMag->chunks[i];
 
 			//printf("(val1&0xFF - borrow) >= val2): %u v %u\n", 
 			//	(val1&0xFF - borrow) ,val2 );
-			if((val1&0xFF - borrow) >= val2) {
+			if((val1&UINT_MAX - borrow) >= val2) {
 				diff = (val1 - borrow) - val2;
 				borrow = 0;
 			}
 			else {  
 				//borrowing time
 				//if val2 > val2, then it assumed that there is something
-				//that can be borrowed at maxMag->bytes[i + 1]
-				diff = ((val1&0xFF + 0x100) - borrow)  - val2;
-
+				//that can be borrowed at maxMag->chunks[i + 1]
+				//diff = ((val1&0xFF + 0x100) - borrow)  - val2;
+				diff = ((val1&UINT_MAX + (unsigned long)(UINT_MAX) + 1) - borrow)  - val2;
 				borrow = 1;
 			}
 			//printf("i: %d, val1: %u,    val2 %u,   diff: %u, borrow: %u\n", 
 			//	i,     val1&0xFF, val2&0xFF, diff&0xFF,     borrow);
 
-			output->bytes[i] = diff;
+			output->chunks[i] = diff;
 		}
 	}
 
@@ -772,9 +791,9 @@ BigInt* mulBigInt_new(BigInt *bigInt1, BigInt *bigInt2) {
 Clean up BigInt
 */
 void freeBigInt(BigInt *bigInt) {
-	if(bigInt->bytes != NULL) {
-		free(bigInt->bytes);
-		bigInt->bytes = NULL;
+	if(bigInt->chunks != NULL) {
+		free(bigInt->chunks);
+		bigInt->chunks = NULL;
 	}
 
 	if(bigInt != NULL) {
