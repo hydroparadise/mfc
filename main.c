@@ -18,15 +18,21 @@
 
 int main(int argc, char **argv) {
 	printf("We gonna have some fun with maths...\n");
-	__m256 t;
+	
+	//plot.c
+	winSizeTest();
+	//fillScreenTest();
+	mandelrbotTest();
+	
 
-	printf("%lu\n",ULONG_MAX);
-
+	//bigint_test.c
+	/*
 	bigIntTest01();	
 	bigIntTest02();	
 	bigIntTest03();
 	bigIntTest04();
 	bigIntTest05();
+	*/
 
 	printf("Buh Bye!\n");
 	return EXIT_SUCCESS;
