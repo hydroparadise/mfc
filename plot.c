@@ -4,9 +4,143 @@
 
 #include <math.h>
 #include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
+#include <stdio.h>
 
+int getch(void)
+{
+    struct termios oldattr, newattr;
+    int ch;
+    tcgetattr( STDIN_FILENO, &oldattr );
+    newattr = oldattr;
+    newattr.c_lflag &= ~( ICANON | ECHO );
+    tcsetattr( STDIN_FILENO, TCSANOW, &newattr );
+    ch = getchar();
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldattr );
+    return ch;
+}
 
-void mandelrbotTest() {
+void mandelbrotPlot(double xMin, double xMax, double yMin, double yMax) {
+	//get window size
+	struct winsize w;
+	ioctl(0, TIOCGWINSZ, &w);
+
+	//plot extents
+	double X_MIN = xMin, X_MAX = xMax, Y_MIN = yMin, Y_MAX = yMax;
+	
+	//
+	int MAX_ITERATIONS = 200;
+	
+	for(int i = 1; i <= w.ws_row - 1; i++) {
+		for(int j = 1; j <= w.ws_col; j++) {
+
+			//map pixels i,j to coordinates x,y
+			double x,y;
+			x = X_MIN + (((double)(j-1)/(double)w.ws_col) * (X_MAX - X_MIN));
+			y = Y_MAX - (((double)(i-1)/(double)w.ws_row) * (Y_MAX - Y_MIN));
+
+			int n = 0;
+			double zr = x, zi = y;
+			
+			while(n < MAX_ITERATIONS && zr + zi <  16) {
+				double aa = zr * zr - zi * zi;
+				double bb = 2.0 * zr * zi;
+
+				zr = aa + x;
+				zi = bb + y;
+				n++;
+			}
+			if(n == MAX_ITERATIONS) printf(".");
+			else {
+				int o = n*9  /  MAX_ITERATIONS;
+				printf("%1i", o ); 
+			} ;
+		} 
+		printf("\n");
+	}	
+}
+
+void mandelbrotCtl() {
+	
+	struct winsize w;
+	ioctl(0, TIOCGWINSZ, &w);
+	double xmin = -2.0, xmax = 1.0, ymin = -1.0, ymax = 1.0, d = 0.1;
+	double x = xmax - xmin;
+	double y = ymax - ymin;
+	double dx = d;
+	double dy = d*(y/x);
+	double m = 64.0;
+	char ch;
+	while(ch!='q') {
+
+		system("clear");
+		printf("\e[3J");
+		struct winsize w;
+		ioctl(0, TIOCGWINSZ, &w);
+		x = xmax - xmin;
+		y = ymax - ymin;
+
+		mandelbrotPlot(xmin,xmax,ymin,ymax);
+		printf("X=%i,Y=%i    xmin=%4f,xmax=%4f,ymin=%4f,ymax=%4f   x=%f,y=%f\0",
+			w.ws_col,w.ws_row,xmin,xmax,ymin,ymax,x,y); 
+
+		ch = getch();
+
+		switch(ch) {
+			case 'a':
+				xmin=xmin-(x/w.ws_col); 
+				xmax=xmax-(x/w.ws_col);
+				break;
+			case 's':
+				ymin=ymin-(y/w.ws_row); 
+				ymax=ymax-(y/w.ws_row);
+				break;
+			case 'd':
+				xmin=xmin+(x/w.ws_col); 
+				xmax=xmax+(x/w.ws_col);
+				break;
+			case 'w':
+				ymin=ymin+(y/w.ws_row); 
+				ymax=ymax+(y/w.ws_row);
+				break;
+
+			case 'r':
+				x=x/m;
+				y=y/m;
+
+				xmin=xmin+(x/2.0);
+				xmax=xmax-(x/2.0);
+				ymin=ymin+(y/2.0);
+				ymax=ymax-(y/2.0);
+				
+				break;
+			case 'f':
+				
+				x=x/m;
+				y=y/m;
+				
+				xmin=xmin-(x/2.0);
+				xmax=xmax+(x/2.0);
+				ymin=ymin-(y/2.0);
+				ymax=ymax+(y/2.0);
+				
+				break;
+		}
+	}
+	printf("\n");
+}
+				//xmin=xmin*1.01;
+				//xmax=xmax*1.01;
+				//ymax=ymax*1.01;	
+				//ymin=ymin*1.01; 
+
+				//xmax=xmax/1.01;
+ 				//xmin=xmin/1.01; 
+				//ymax=ymax/1.01;
+				//ymin=ymin/1.01; 
+
+void mandelbrotTest() {
 	//get window size
 	struct winsize w;
 	ioctl(0, TIOCGWINSZ, &w);
@@ -49,7 +183,7 @@ void mandelrbotTest() {
 				printf("%1i", o );
 			} ;
 		} 
-		printf("\n");
+		printf("\0");
 	}
 	
 }

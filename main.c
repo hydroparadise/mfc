@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 	//plot.c
 	winSizeTest();
 	//fillScreenTest();
-	mandelrbotTest();
+	mandelbrotCtl();
 	
 
 	//bigint_test.c
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 	bigIntTest05();
 	*/
 
-	printf("Buh Bye!\n");
+	//printf("Buh Bye!\n");
 	return EXIT_SUCCESS;
 }
 
