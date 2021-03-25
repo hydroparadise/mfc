@@ -8,8 +8,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-int getch(void)
-{
+int getch(void) {
     struct termios oldattr, newattr;
     int ch;
     tcgetattr( STDIN_FILENO, &oldattr );
@@ -21,6 +20,12 @@ int getch(void)
     return ch;
 }
 
+void gotoxy(int x, int y) {
+	printf("%c[%d;%df",0x1B,y,x);
+}
+
+
+
 void mandelbrotPlot(double xMin, double xMax, double yMin, double yMax) {
 	//get window size
 	struct winsize w;
@@ -30,7 +35,7 @@ void mandelbrotPlot(double xMin, double xMax, double yMin, double yMax) {
 	double X_MIN = xMin, X_MAX = xMax, Y_MIN = yMin, Y_MAX = yMax;
 	
 	//
-	int MAX_ITERATIONS = 200;
+	int MAX_ITERATIONS = 100;
 	
 	for(int i = 1; i <= w.ws_row - 1; i++) {
 		for(int j = 1; j <= w.ws_col; j++) {
@@ -51,37 +56,40 @@ void mandelbrotPlot(double xMin, double xMax, double yMin, double yMax) {
 				zi = bb + y;
 				n++;
 			}
+			gotoxy(j,i);
+
 			if(n == MAX_ITERATIONS) printf(".");
 			else {
 				int o = n*9  /  MAX_ITERATIONS;
-				printf("%1i", o ); 
+				printf("%1i", o); 
 			} ;
 		} 
-		printf("\n");
+		//printf("\n");
 	}	
 }
 
 void mandelbrotCtl() {
-	
+	system("clear");
+	printf("\e[3J"); //removes repeated screen
+	fflush(stdout);
 	struct winsize w;
 	ioctl(0, TIOCGWINSZ, &w);
 	double xmin = -2.0, xmax = 1.0, ymin = -1.0, ymax = 1.0, d = 0.1;
+
 	double x = xmax - xmin;
 	double y = ymax - ymin;
-	double dx = d;
-	double dy = d*(y/x);
-	double m = 64.0;
+	double m = 64.0;//zoom factor
 	char ch;
 	while(ch!='q') {
+		
 
-		system("clear");
-		printf("\e[3J");
 		struct winsize w;
 		ioctl(0, TIOCGWINSZ, &w);
 		x = xmax - xmin;
 		y = ymax - ymin;
 
 		mandelbrotPlot(xmin,xmax,ymin,ymax);
+		gotoxy(1,w.ws_row);
 		printf("X=%i,Y=%i    xmin=%4f,xmax=%4f,ymin=%4f,ymax=%4f   x=%f,y=%f\0",
 			w.ws_col,w.ws_row,xmin,xmax,ymin,ymax,x,y); 
 
@@ -130,15 +138,7 @@ void mandelbrotCtl() {
 	}
 	printf("\n");
 }
-				//xmin=xmin*1.01;
-				//xmax=xmax*1.01;
-				//ymax=ymax*1.01;	
-				//ymin=ymin*1.01; 
 
-				//xmax=xmax/1.01;
- 				//xmin=xmin/1.01; 
-				//ymax=ymax/1.01;
-				//ymin=ymin/1.01; 
 
 void mandelbrotTest() {
 	//get window size
